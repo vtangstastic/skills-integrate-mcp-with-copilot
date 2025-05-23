@@ -7,9 +7,10 @@ for extracurricular activities at Mergington High School.
 
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import RedirectResponse
-import os
+from fastapi.responses import RedirectResponse, JSONResponse
 from pathlib import Path
+import os
+import requests  # For future Eventbrite API integration
 
 app = FastAPI(title="Mergington High School API",
               description="API for viewing and signing up for extracurricular activities")
@@ -130,3 +131,40 @@ def unregister_from_activity(activity_name: str, email: str):
     # Remove student
     activity["participants"].remove(email)
     return {"message": f"Unregistered {email} from {activity_name}"}
+
+
+# --- Eventbrite API Integration (Initial Stub) ---
+EVENTBRITE_API_URL = "https://www.eventbriteapi.com/v3/events/search/"
+EVENTBRITE_TOKEN = os.environ.get("EVENTBRITE_TOKEN", "")  # Set your token as env var
+
+@app.get("/external-events")
+def get_external_events():
+    """
+    Fetch events from Eventbrite (real API integration).
+    """
+    if not EVENTBRITE_TOKEN:
+        return JSONResponse(status_code=500, content={"error": "Eventbrite API token not set in environment."})
+
+    headers = {"Authorization": f"Bearer {EVENTBRITE_TOKEN}"}
+    params = {
+        "q": "coding",  # Example: search for coding events
+        "location.address": "United States",
+        "sort_by": "date"
+    }
+    try:
+        response = requests.get(EVENTBRITE_API_URL, headers=headers, params=params, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+        events = []
+        for event in data.get("events", []):
+            events.append({
+                "id": event.get("id"),
+                "name": event.get("name", {}).get("text", ""),
+                "description": event.get("description", {}).get("text", ""),
+                "start_time": event.get("start", {}).get("local", ""),
+                "end_time": event.get("end", {}).get("local", ""),
+                "url": event.get("url", "")
+            })
+        return JSONResponse(content={"events": events})
+    except Exception as e:
+        return JSONResponse(status_code=502, content={"error": f"Failed to fetch from Eventbrite: {str(e)}"})
