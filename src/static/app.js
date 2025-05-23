@@ -155,6 +155,46 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
+  // --- Animated Git-style branch lines background ---
+  function animateBranchLines() {
+    const canvas = document.getElementById("branchLinesBg");
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = window.innerWidth * dpr;
+    canvas.height = window.innerHeight * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Draw a few animated branch lines
+    const now = Date.now() / 1000;
+    const lines = [
+      { color: "#bfff00", y: 100 + Math.sin(now) * 20, phase: 0 },
+      { color: "#222", y: 200 + Math.cos(now * 0.7) * 30, phase: 1 },
+      { color: "#bfff00", y: 300 + Math.sin(now * 1.2) * 15, phase: 2 },
+    ];
+    lines.forEach((line, i) => {
+      ctx.strokeStyle = line.color;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      let x = 0;
+      ctx.moveTo(x, line.y);
+      for (x = 0; x < canvas.width; x += 40) {
+        ctx.lineTo(
+          x + 20,
+          line.y + Math.sin((now * 0.7 + x / 200 + line.phase) * 2) * 18
+        );
+      }
+      ctx.stroke();
+    });
+    requestAnimationFrame(animateBranchLines);
+  }
+  window.addEventListener("resize", animateBranchLines);
+  window.addEventListener("DOMContentLoaded", () => {
+    // ...existing code...
+    animateBranchLines();
+  });
+
   // Initialize app
   fetchActivities();
 });
